@@ -27,6 +27,9 @@ const api = {
   },
   closePreview: (): void => {
     ipcRenderer.send(IPC.PREVIEW_CLOSE)
+  },
+  openScreenRecordingSettings: (): void => {
+    ipcRenderer.send('onboarding:open-settings')
   }
 }
 

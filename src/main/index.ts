@@ -1,37 +1,18 @@
-import { app, dialog, shell } from 'electron'
+import { app } from 'electron'
 import { createTray } from './tray'
 import { registerShortcuts, unregisterShortcuts } from './shortcut'
 import { registerIpcHandlers } from './ipc-handlers'
 import { registerPreviewIpcHandlers } from './preview-window'
-import { captureFullScreen, checkScreenCapturePermission, saveTempScreenshot } from './screenshot'
+import { captureFullScreen, saveTempScreenshot } from './screenshot'
 import { createOverlayWindow, registerOverlayIpcHandlers } from './overlay-window'
 import { openPreviewWindow } from './preview-window'
+import { showOnboardingIfNeeded, registerOnboardingIpcHandlers } from './onboarding-window'
 
-async function ensurePermission(): Promise<boolean> {
-  if (checkScreenCapturePermission()) return true
-
-  const { response } = await dialog.showMessageBox({
-    type: 'warning',
-    message: 'Screen recording permission is required.',
-    detail: 'Please enable krtr in System Settings > Privacy & Security > Screen Recording.',
-    buttons: ['Open Settings', 'Cancel']
-  })
-  if (response === 0) {
-    shell.openExternal(
-      'x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture'
-    )
-  }
-  return false
-}
-
-async function startRegionCapture(): Promise<void> {
-  if (!(await ensurePermission())) return
+function startRegionCapture(): void {
   createOverlayWindow()
 }
 
 async function handleFullscreenCapture(): Promise<void> {
-  if (!(await ensurePermission())) return
-
   const image = await captureFullScreen()
   if (!image) return
 
@@ -39,15 +20,7 @@ async function handleFullscreenCapture(): Promise<void> {
   openPreviewWindow(image.toDataURL(), tempPath)
 }
 
-app.whenReady().then(() => {
-  if (process.platform === 'darwin') {
-    app.dock?.hide()
-  }
-
-  registerOverlayIpcHandlers()
-  registerPreviewIpcHandlers()
-  registerIpcHandlers()
-
+function setupApp(): void {
   createTray({
     onCaptureRegion: () => startRegionCapture(),
     onCaptureFullscreen: () => handleFullscreenCapture()
@@ -56,6 +29,24 @@ app.whenReady().then(() => {
   registerShortcuts({
     onCaptureRegion: () => startRegionCapture(),
     onCaptureFullscreen: () => handleFullscreenCapture()
+  })
+}
+
+app.whenReady().then(() => {
+  if (process.platform === 'darwin') {
+    app.dock?.hide()
+  }
+
+  registerOnboardingIpcHandlers()
+  registerOverlayIpcHandlers()
+  registerPreviewIpcHandlers()
+  registerIpcHandlers()
+
+  showOnboardingIfNeeded(() => {
+    if (process.platform === 'darwin') {
+      app.dock?.hide()
+    }
+    setupApp()
   })
 })
 
