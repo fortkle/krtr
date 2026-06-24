@@ -68,6 +68,10 @@ jobs:
             homepage "https://github.com/fortkle/krtr"
 
             app "krtr.app"
+
+            postflight do
+              system_command "/usr/bin/xattr", args: ["-cr", "#{appdir}/krtr.app"]
+            end
           end
           CASK
 
