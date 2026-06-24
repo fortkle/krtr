@@ -27,6 +27,12 @@ jobs:
 
       - run: pnpm run package
 
+      - name: Rename artifacts
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          mv dist/krtr-${VERSION}-arm64-mac.zip "dist/krtr-${VERSION}-Apple-Silicon.zip"
+          mv dist/krtr-${VERSION}-mac.zip "dist/krtr-${VERSION}-Intel.zip"
+
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
         with:
