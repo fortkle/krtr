@@ -5,25 +5,18 @@ const api = {
   captureFullscreen: (): Promise<void> => ipcRenderer.invoke(IPC.CAPTURE_FULLSCREEN),
   sendRegionSelected: (rect: Rectangle): Promise<void> =>
     ipcRenderer.invoke(IPC.CAPTURE_REGION_SELECTED, rect),
+  sendTimerCapture: (rect: Rectangle): void => {
+    ipcRenderer.send(IPC.CAPTURE_TIMER, rect)
+  },
   sendCancelled: (): void => {
     ipcRenderer.send(IPC.CAPTURE_CANCELLED)
   },
-  sendOverlayReady: (): void => {
-    ipcRenderer.send(IPC.OVERLAY_READY)
+  setOverlayPassthrough: (passthrough: boolean): void => {
+    ipcRenderer.send(IPC.OVERLAY_SET_PASSTHROUGH, passthrough)
   },
-  onScreenshotData: (callback: (dataUrl: string) => void): (() => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, dataUrl: string): void => {
-      callback(dataUrl)
-    }
-    ipcRenderer.on(IPC.SCREENSHOT_DATA, handler)
-    return () => ipcRenderer.removeListener(IPC.SCREENSHOT_DATA, handler)
-  },
-  onPreviewData: (callback: (dataUrl: string) => void): (() => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, dataUrl: string): void => {
-      callback(dataUrl)
-    }
-    ipcRenderer.on(IPC.PREVIEW_DATA, handler)
-    return () => ipcRenderer.removeListener(IPC.PREVIEW_DATA, handler)
+  getPreviewData: (): Promise<string> => ipcRenderer.invoke(IPC.PREVIEW_GET_DATA),
+  setFilename: (name: string): void => {
+    ipcRenderer.send(IPC.PREVIEW_SET_FILENAME, name)
   },
   startDrag: (): void => {
     ipcRenderer.send(IPC.PREVIEW_START_DRAG)
