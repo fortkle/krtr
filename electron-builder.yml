@@ -9,7 +9,8 @@ mac:
   target:
     - target: zip
       arch:
-        - universal
+        - x64
+        - arm64
   icon: build/icon.icns
   identity: null
   extendInfo:
