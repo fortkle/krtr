@@ -38,3 +38,42 @@ jobs:
         with:
           files: dist/*.zip
           generate_release_notes: true
+
+      - name: Update Homebrew cask
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          SHA_ARM=$(shasum -a 256 "dist/krtr-${VERSION}-Apple-Silicon.zip" | cut -d ' ' -f 1)
+          SHA_INTEL=$(shasum -a 256 "dist/krtr-${VERSION}-Intel.zip" | cut -d ' ' -f 1)
+
+          git clone https://x-access-token:${GH_TOKEN}@github.com/fortkle/homebrew-krtr.git /tmp/homebrew-krtr
+
+          cat > /tmp/homebrew-krtr/Casks/krtr.rb << CASK
+          cask "krtr" do
+            version "${VERSION}"
+
+            on_arm do
+              sha256 "${SHA_ARM}"
+              url "https://github.com/fortkle/krtr/releases/download/v#{version}/krtr-#{version}-Apple-Silicon.zip"
+            end
+
+            on_intel do
+              sha256 "${SHA_INTEL}"
+              url "https://github.com/fortkle/krtr/releases/download/v#{version}/krtr-#{version}-Intel.zip"
+            end
+
+            name "krtr"
+            desc "Screenshot and image annotation tool"
+            homepage "https://github.com/fortkle/krtr"
+
+            app "krtr.app"
+          end
+          CASK
+
+          cd /tmp/homebrew-krtr
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/krtr.rb
+          git commit -m "Update krtr to ${VERSION}"
+          git push
