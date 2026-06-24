@@ -2,6 +2,10 @@
 
 A lightweight screenshot tool for macOS, inspired by Skitch. Capture a region or your full screen, adjust the selection, and share via drag-and-drop.
 
+<p align="center">
+  <img src="docs/screenshot.png" alt="krtr region selection" width="600">
+</p>
+
 ## Install
 
 1. Download the latest zip from [Releases](https://github.com/fortkle/krtr/releases) — pick **Apple Silicon** (M1/M2/M3/M4) or **Intel**
