@@ -12,6 +12,8 @@ mac:
         - universal
   icon: build/icon.icns
   identity: null
+  extendInfo:
+    LSUIElement: true
 
 files:
   - out/**/*
