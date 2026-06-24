@@ -1,5 +1,6 @@
 import { Menu, nativeImage, Tray } from 'electron'
 import { join } from 'path'
+import { is } from '@electron-toolkit/utils'
 
 let tray: Tray | null = null
 
@@ -9,7 +10,10 @@ interface TrayActions {
 }
 
 export function createTray(actions: TrayActions): void {
-  const iconPath = join(__dirname, '../../resources/trayIconTemplate.png')
+  const resourcesPath = is.dev
+    ? join(__dirname, '../../resources')
+    : join(process.resourcesPath, 'resources')
+  const iconPath = join(resourcesPath, 'trayIconTemplate.png')
   const icon = nativeImage.createFromPath(iconPath)
   tray = new Tray(icon)
 
