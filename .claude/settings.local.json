@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:zenn.dev)",
+      "Bash(npm create *)",
+      "Bash(node -e \"console.log\\(process.version\\)\")"
+    ]
+  }
+}
