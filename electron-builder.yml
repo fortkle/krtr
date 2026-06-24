@@ -1,0 +1,22 @@
+appId: com.fortkle.krtr
+productName: krtr
+directories:
+  buildResources: build
+  output: dist
+
+mac:
+  category: public.app-category.utilities
+  target:
+    - target: zip
+      arch:
+        - universal
+  icon: build/icon.icns
+  identity: null
+
+files:
+  - out/**/*
+  - "!node_modules/**/*"
+
+extraResources:
+  - from: resources/
+    to: resources/
