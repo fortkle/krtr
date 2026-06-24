@@ -1,6 +1,6 @@
-import { app, clipboard, desktopCapturer, Notification, screen, systemPreferences } from 'electron'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
+import { app, clipboard, desktopCapturer, dialog, Notification, screen, systemPreferences } from 'electron'
+import { readFile, writeFile, mkdir } from 'fs/promises'
+import { join, basename } from 'path'
 import { homedir } from 'os'
 import type { Rectangle } from '../shared/types'
 
@@ -43,41 +43,29 @@ export async function captureRegion(rect: Rectangle): Promise<Electron.NativeIma
   return image.crop(rect)
 }
 
-function generateFilename(): string {
-  const now = new Date()
-  const timestamp = [
-    now.getFullYear(),
-    String(now.getMonth() + 1).padStart(2, '0'),
-    String(now.getDate()).padStart(2, '0'),
-    '-',
-    String(now.getHours()).padStart(2, '0'),
-    String(now.getMinutes()).padStart(2, '0'),
-    String(now.getSeconds()).padStart(2, '0')
-  ].join('')
-  return `krtr-${timestamp}.png`
-}
 
 export async function saveTempScreenshot(image: Electron.NativeImage): Promise<string> {
   const tempDir = join(app.getPath('temp'), 'krtr')
   await mkdir(tempDir, { recursive: true })
-  const filename = generateFilename()
-  const filepath = join(tempDir, filename)
+  const filepath = join(tempDir, 'image.png')
   await writeFile(filepath, image.toPNG())
   return filepath
 }
 
-export async function saveScreenshotToDesktop(tempPath: string): Promise<void> {
-  const { readFile } = await import('fs/promises')
+export async function saveScreenshotWithDialog(tempPath: string): Promise<void> {
+  const defaultName = basename(tempPath)
+  const { filePath, canceled } = await dialog.showSaveDialog({
+    defaultPath: join(homedir(), 'Desktop', defaultName),
+    filters: [{ name: 'PNG Image', extensions: ['png'] }]
+  })
+  if (canceled || !filePath) return
+
   const data = await readFile(tempPath)
-  const desktopPath = join(homedir(), 'Desktop')
-  const filename = generateFilename()
-  const filepath = join(desktopPath, filename)
-  await mkdir(desktopPath, { recursive: true })
-  await writeFile(filepath, data)
+  await writeFile(filePath, data)
 
   new Notification({
     title: 'krtr',
-    body: `Saved to Desktop/${filename}`
+    body: `Saved to ${basename(filePath)}`
   }).show()
 }
 
