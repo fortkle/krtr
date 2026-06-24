@@ -3,6 +3,7 @@ out/
 dist/
 *.tsbuildinfo
 .DS_Store
+package-lock.json
 
 # Claude Code local settings
 .claude/settings.local.json
