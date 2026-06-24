@@ -1,11 +1,11 @@
-import { BrowserWindow, screen } from 'electron'
+import { BrowserWindow, ipcMain, screen } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import { IPC } from '../shared/types'
 
 let overlayWindow: BrowserWindow | null = null
 
-export function createOverlayWindow(screenshotDataUrl: string): void {
+export function createOverlayWindow(): void {
   if (overlayWindow) {
     overlayWindow.close()
     overlayWindow = null
@@ -41,10 +41,6 @@ export function createOverlayWindow(screenshotDataUrl: string): void {
     overlayWindow.setVisibleOnAllWorkspaces(true)
   }
 
-  overlayWindow.webContents.on('did-finish-load', () => {
-    // Wait for overlay:ready IPC, then send screenshot
-  })
-
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     overlayWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
@@ -55,10 +51,15 @@ export function createOverlayWindow(screenshotDataUrl: string): void {
     overlayWindow?.show()
     overlayWindow?.focus()
   })
+}
 
-  // Store screenshot data to send when overlay signals ready
-  overlayWindow.webContents.once('dom-ready', () => {
-    overlayWindow?.webContents.send(IPC.SCREENSHOT_DATA, screenshotDataUrl)
+export function registerOverlayIpcHandlers(): void {
+  ipcMain.on(IPC.OVERLAY_SET_PASSTHROUGH, (_event, passthrough: boolean) => {
+    if (!overlayWindow) return
+    overlayWindow.setIgnoreMouseEvents(passthrough, { forward: true })
+    if (passthrough) {
+      overlayWindow.setFocusable(false)
+    }
   })
 }
 
