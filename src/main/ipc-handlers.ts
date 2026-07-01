@@ -2,13 +2,14 @@ import { ipcMain } from 'electron'
 import { IPC, Rectangle } from '../shared/types'
 import { captureFullScreen, captureRegion, saveTempScreenshot } from './screenshot'
 import { closeOverlayWindow } from './overlay-window'
-import { openPreviewWindow } from './preview-window'
+import { hidePreviewWindow, openPreviewWindow } from './preview-window'
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 async function captureAndPreview(rect: Rectangle): Promise<void> {
+  hidePreviewWindow()
   closeOverlayWindow()
   await delay(200)
   const image = await captureRegion(rect)

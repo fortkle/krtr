@@ -5,14 +5,17 @@ import { registerIpcHandlers } from './ipc-handlers'
 import { registerPreviewIpcHandlers } from './preview-window'
 import { captureFullScreen, saveTempScreenshot } from './screenshot'
 import { createOverlayWindow, registerOverlayIpcHandlers } from './overlay-window'
-import { openPreviewWindow } from './preview-window'
+import { hidePreviewWindow, openPreviewWindow } from './preview-window'
 import { showOnboardingIfNeeded, registerOnboardingIpcHandlers } from './onboarding-window'
 
 function startRegionCapture(): void {
+  hidePreviewWindow()
   createOverlayWindow()
 }
 
 async function handleFullscreenCapture(): Promise<void> {
+  hidePreviewWindow()
+  await new Promise((resolve) => setTimeout(resolve, 200))
   const image = await captureFullScreen()
   if (!image) return
 
