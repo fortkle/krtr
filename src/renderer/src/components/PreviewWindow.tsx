@@ -1,11 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+interface Box {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
 export function PreviewWindow(): React.ReactElement {
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [imageSize, setImageSize] = useState<{ w: number; h: number } | null>(null)
   const [filename, setFilename] = useState('image')
   const [editing, setEditing] = useState(false)
+  const [overlayBox, setOverlayBox] = useState<Box | null>(null)
+  const [selection, setSelection] = useState<Box | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const imgRef = useRef<HTMLImageElement>(null)
+  const canvasRef = useRef<HTMLDivElement>(null)
+  const dragStartRef = useRef<{ x: number; y: number } | null>(null)
 
   useEffect(() => {
     window.api.getPreviewData().then((dataUrl) => {
@@ -58,6 +70,99 @@ export function PreviewWindow(): React.ReactElement {
     window.api.copyToClipboard()
   }, [])
 
+  const updateOverlayBox = useCallback(() => {
+    const img = imgRef.current
+    const canvas = canvasRef.current
+    if (!img || !canvas) return
+    const ir = img.getBoundingClientRect()
+    const cr = canvas.getBoundingClientRect()
+    setOverlayBox({ x: ir.left - cr.left, y: ir.top - cr.top, w: ir.width, h: ir.height })
+  }, [])
+
+  const handleCancelCrop = useCallback(() => {
+    setSelection(null)
+    dragStartRef.current = null
+  }, [])
+
+  useEffect(() => {
+    updateOverlayBox()
+    const handleResize = (): void => {
+      setSelection(null)
+      updateOverlayBox()
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [imageUrl, updateOverlayBox])
+
+  useEffect(() => {
+    if (!selection) return
+    const handleKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') handleCancelCrop()
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [selection, handleCancelCrop])
+
+  const clampToOverlay = useCallback(
+    (clientX: number, clientY: number, target: HTMLElement): { x: number; y: number } => {
+      const rect = target.getBoundingClientRect()
+      return {
+        x: Math.min(Math.max(0, clientX - rect.left), rect.width),
+        y: Math.min(Math.max(0, clientY - rect.top), rect.height)
+      }
+    },
+    []
+  )
+
+  const handleCropPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const pos = clampToOverlay(e.clientX, e.clientY, e.currentTarget)
+      dragStartRef.current = pos
+      setSelection({ x: pos.x, y: pos.y, w: 0, h: 0 })
+      e.currentTarget.setPointerCapture(e.pointerId)
+    },
+    [clampToOverlay]
+  )
+
+  const handleCropPointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const start = dragStartRef.current
+      if (!start) return
+      const pos = clampToOverlay(e.clientX, e.clientY, e.currentTarget)
+      setSelection({
+        x: Math.min(start.x, pos.x),
+        y: Math.min(start.y, pos.y),
+        w: Math.abs(pos.x - start.x),
+        h: Math.abs(pos.y - start.y)
+      })
+    },
+    [clampToOverlay]
+  )
+
+  const handleCropPointerUp = useCallback(() => {
+    dragStartRef.current = null
+    setSelection((sel) => (sel && sel.w >= 2 && sel.h >= 2 ? sel : null))
+  }, [])
+
+  const canApplyCrop = selection !== null && selection.w >= 2 && selection.h >= 2
+
+  const handleApplyCrop = useCallback(async () => {
+    if (!selection || !overlayBox || !imageSize) return
+    if (selection.w < 2 || selection.h < 2) return
+    const scaleX = imageSize.w / overlayBox.w
+    const scaleY = imageSize.h / overlayBox.h
+    const newUrl = await window.api.cropImage({
+      x: selection.x * scaleX,
+      y: selection.y * scaleY,
+      width: selection.w * scaleX,
+      height: selection.h * scaleY
+    })
+    if (newUrl) {
+      setImageUrl(newUrl)
+    }
+    handleCancelCrop()
+  }, [selection, overlayBox, imageSize, handleCancelCrop])
+
   if (!imageUrl) {
     return <div style={styles.loading}>Loading...</div>
   }
@@ -69,8 +174,41 @@ export function PreviewWindow(): React.ReactElement {
       </div>
 
       <div style={styles.body}>
-        <div style={styles.canvas}>
-          <img src={imageUrl} style={styles.image} draggable={false} />
+        <div ref={canvasRef} style={styles.canvas}>
+          <img
+            ref={imgRef}
+            src={imageUrl}
+            style={styles.image}
+            draggable={false}
+            onLoad={updateOverlayBox}
+          />
+          {overlayBox && (
+            <div
+              style={{
+                ...styles.cropOverlay,
+                left: overlayBox.x,
+                top: overlayBox.y,
+                width: overlayBox.w,
+                height: overlayBox.h
+              }}
+              title="Drag to crop"
+              onPointerDown={handleCropPointerDown}
+              onPointerMove={handleCropPointerMove}
+              onPointerUp={handleCropPointerUp}
+            >
+              {selection && (
+                <div
+                  style={{
+                    ...styles.cropSelection,
+                    left: selection.x,
+                    top: selection.y,
+                    width: selection.w,
+                    height: selection.h
+                  }}
+                />
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -101,27 +239,45 @@ export function PreviewWindow(): React.ReactElement {
           )}
         </div>
         <div style={styles.toolbar}>
-          <button onClick={handleCopy} style={styles.button} title="Copy to clipboard">
-            Copy
-          </button>
-          <button onClick={handleSave} style={styles.button} title="Save">
-            Save
-          </button>
-          <div
-            style={styles.dragTab}
-            draggable
-            onDragStart={handleDragStart}
-            title="Drag to any app or folder"
-          >
-            <div style={styles.dragIcon}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <rect x="3" y="2" width="10" height="2" rx="1" />
-                <rect x="3" y="7" width="10" height="2" rx="1" />
-                <rect x="3" y="12" width="10" height="2" rx="1" />
-              </svg>
-            </div>
-            <span style={styles.dragLabel}>Drag me</span>
-          </div>
+          {selection ? (
+            <>
+              <button
+                onClick={handleApplyCrop}
+                style={canApplyCrop ? styles.primaryButton : styles.buttonDisabled}
+                disabled={!canApplyCrop}
+                title="Apply crop"
+              >
+                Apply
+              </button>
+              <button onClick={handleCancelCrop} style={styles.button} title="Cancel crop">
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button onClick={handleCopy} style={styles.button} title="Copy to clipboard">
+                Copy
+              </button>
+              <button onClick={handleSave} style={styles.button} title="Save">
+                Save
+              </button>
+              <div
+                style={styles.dragTab}
+                draggable
+                onDragStart={handleDragStart}
+                title="Drag to any app or folder"
+              >
+                <div style={styles.dragIcon}>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <rect x="3" y="2" width="10" height="2" rx="1" />
+                    <rect x="3" y="7" width="10" height="2" rx="1" />
+                    <rect x="3" y="12" width="10" height="2" rx="1" />
+                  </svg>
+                </div>
+                <span style={styles.dragLabel}>Drag me</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -173,7 +329,19 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: '12px',
-    overflow: 'hidden'
+    overflow: 'hidden',
+    position: 'relative'
+  },
+  cropOverlay: {
+    position: 'absolute',
+    overflow: 'hidden',
+    cursor: 'crosshair',
+    touchAction: 'none'
+  },
+  cropSelection: {
+    position: 'absolute',
+    boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)',
+    pointerEvents: 'none'
   },
   image: {
     maxWidth: '100%',
@@ -237,6 +405,26 @@ const styles: Record<string, React.CSSProperties> = {
     background: '#3a3a3a',
     color: '#ddd',
     cursor: 'pointer',
+    fontSize: '12px',
+    lineHeight: '18px'
+  },
+  primaryButton: {
+    padding: '4px 12px',
+    border: '1px solid #0066cc',
+    borderRadius: '4px',
+    background: '#0066cc',
+    color: '#fff',
+    cursor: 'pointer',
+    fontSize: '12px',
+    lineHeight: '18px'
+  },
+  buttonDisabled: {
+    padding: '4px 12px',
+    border: '1px solid #444',
+    borderRadius: '4px',
+    background: '#2e2e2e',
+    color: '#666',
+    cursor: 'default',
     fontSize: '12px',
     lineHeight: '18px'
   },

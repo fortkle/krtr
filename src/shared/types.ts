@@ -18,6 +18,7 @@ export const IPC = {
   PREVIEW_SET_FILENAME: 'preview:set-filename',
   PREVIEW_START_DRAG: 'preview:start-drag',
   PREVIEW_SAVE: 'preview:save',
+  PREVIEW_CROP: 'preview:crop',
   PREVIEW_COPY: 'preview:copy',
   PREVIEW_CLOSE: 'preview:close'
 } as const
