@@ -17,6 +17,8 @@ export function Onboarding(): React.ReactElement {
       </button>
       <p style={styles.hint}>
         Enable <strong>krtr</strong> in the list, then this window will close automatically.
+        <br />
+        If it stays open after granting, quit and reopen the app.
       </p>
     </div>
   )

@@ -11,6 +11,20 @@ export function checkScreenCapturePermission(): boolean {
   return true
 }
 
+export async function requestScreenCapturePermission(): Promise<void> {
+  // macOS only registers an app in the Screen Recording permission list
+  // (and shows the system prompt) when the app actually attempts a capture.
+  // Fire a minimal capture attempt so the user can grant permission.
+  try {
+    await desktopCapturer.getSources({
+      types: ['screen'],
+      thumbnailSize: { width: 1, height: 1 }
+    })
+  } catch {
+    // ignore — this call exists only to trigger the permission prompt
+  }
+}
+
 export async function captureFullScreen(
   displayId?: string
 ): Promise<Electron.NativeImage | null> {
