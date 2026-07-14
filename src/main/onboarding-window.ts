@@ -1,7 +1,7 @@
 import { BrowserWindow, ipcMain, shell } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
-import { checkScreenCapturePermission } from './screenshot'
+import { checkScreenCapturePermission, requestScreenCapturePermission } from './screenshot'
 
 let onboardingWindow: BrowserWindow | null = null
 let pollTimer: ReturnType<typeof setInterval> | null = null
@@ -11,6 +11,9 @@ export function showOnboardingIfNeeded(onReady: () => void): void {
     onReady()
     return
   }
+
+  // Register the app in the Screen Recording list and trigger the system prompt
+  void requestScreenCapturePermission()
 
   onboardingWindow = new BrowserWindow({
     width: 480,
