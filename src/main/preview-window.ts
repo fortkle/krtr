@@ -1,13 +1,29 @@
 import { BrowserWindow, ipcMain, nativeImage } from 'electron'
-import { rename } from 'fs/promises'
+import { rename, writeFile } from 'fs/promises'
 import { join, dirname } from 'path'
 import { is } from '@electron-toolkit/utils'
-import { IPC } from '../shared/types'
+import { IPC, Rectangle } from '../shared/types'
 import { copyImageToClipboard, saveScreenshotWithDialog } from './screenshot'
 
 let previewWindow: BrowserWindow | null = null
 let currentTempPath: string | null = null
 let currentDataUrl: string | null = null
+
+function windowSizeForImage(imageSize: Electron.Size): { width: number; height: number } {
+  const padding = 24
+  const chromeHeight = 80
+  const maxWidth = 700
+  const maxHeight = 550
+  const scale = Math.min(
+    1,
+    maxWidth / (imageSize.width + padding * 2),
+    maxHeight / (imageSize.height + padding * 2)
+  )
+  return {
+    width: Math.max(300, Math.round(imageSize.width * scale) + padding * 2),
+    height: Math.max(200, Math.round(imageSize.height * scale) + padding * 2 + chromeHeight)
+  }
+}
 
 export function openPreviewWindow(dataUrl: string, tempPath: string): void {
   if (previewWindow) {
@@ -20,15 +36,7 @@ export function openPreviewWindow(dataUrl: string, tempPath: string): void {
   currentDataUrl = dataUrl
 
   const image = nativeImage.createFromDataURL(dataUrl)
-  const imageSize = image.getSize()
-
-  const padding = 24
-  const chromeHeight = 80
-  const maxWidth = 700
-  const maxHeight = 550
-  const scale = Math.min(1, maxWidth / (imageSize.width + padding * 2), maxHeight / (imageSize.height + padding * 2))
-  const winWidth = Math.max(300, Math.round(imageSize.width * scale) + padding * 2)
-  const winHeight = Math.round(imageSize.height * scale) + padding * 2 + chromeHeight
+  const { width: winWidth, height: winHeight } = windowSizeForImage(image.getSize())
 
   previewWindow = new BrowserWindow({
     width: winWidth,
@@ -87,6 +95,32 @@ export function registerPreviewIpcHandlers(): void {
       file: currentTempPath,
       icon
     })
+  })
+
+  ipcMain.handle(IPC.PREVIEW_CROP, async (event, rect: Rectangle) => {
+    if (!currentDataUrl) return null
+
+    const image = nativeImage.createFromDataURL(currentDataUrl)
+    const size = image.getSize()
+    const x = Math.min(Math.max(0, Math.round(rect.x)), size.width - 1)
+    const y = Math.min(Math.max(0, Math.round(rect.y)), size.height - 1)
+    const width = Math.min(Math.round(rect.width), size.width - x)
+    const height = Math.min(Math.round(rect.height), size.height - y)
+    if (width < 1 || height < 1) return null
+
+    const cropped = image.crop({ x, y, width, height })
+    currentDataUrl = cropped.toDataURL()
+    if (currentTempPath) {
+      await writeFile(currentTempPath, cropped.toPNG())
+    }
+
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (win) {
+      const { width: winWidth, height: winHeight } = windowSizeForImage(cropped.getSize())
+      win.setSize(winWidth, winHeight)
+    }
+
+    return currentDataUrl
   })
 
   ipcMain.handle(IPC.PREVIEW_SAVE, async () => {

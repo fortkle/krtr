@@ -22,6 +22,8 @@ const api = {
     ipcRenderer.send(IPC.PREVIEW_START_DRAG)
   },
   saveToDesktop: (): Promise<void> => ipcRenderer.invoke(IPC.PREVIEW_SAVE),
+  cropImage: (rect: Rectangle): Promise<string | null> =>
+    ipcRenderer.invoke(IPC.PREVIEW_CROP, rect),
   copyToClipboard: (): void => {
     ipcRenderer.send(IPC.PREVIEW_COPY)
   },
