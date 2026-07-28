@@ -14,6 +14,7 @@ const api = {
   setOverlayPassthrough: (passthrough: boolean): void => {
     ipcRenderer.send(IPC.OVERLAY_SET_PASSTHROUGH, passthrough)
   },
+  getOverlayImage: (): Promise<string | null> => ipcRenderer.invoke(IPC.OVERLAY_GET_IMAGE),
   getPreviewData: (): Promise<string> => ipcRenderer.invoke(IPC.PREVIEW_GET_DATA),
   setFilename: (name: string): void => {
     ipcRenderer.send(IPC.PREVIEW_SET_FILENAME, name)
