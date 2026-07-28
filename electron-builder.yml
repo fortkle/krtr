@@ -4,6 +4,8 @@ directories:
   buildResources: build
   output: dist
 
+afterPack: scripts/adhoc-sign.js
+
 mac:
   category: public.app-category.utilities
   target:
@@ -12,7 +14,6 @@ mac:
         - x64
         - arm64
   icon: build/icon.icns
-  identity: null
   extendInfo:
     LSUIElement: true
 
