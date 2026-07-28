@@ -6,6 +6,8 @@ export function RegionSelector(): React.ReactElement {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [ready, setReady] = useState(false)
   const [countdown, setCountdown] = useState<number | null>(null)
+  const [capturing, setCapturing] = useState(false)
+  const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null)
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const {
@@ -20,6 +22,9 @@ export function RegionSelector(): React.ReactElement {
 
   useEffect(() => {
     setReady(true)
+    window.api.getOverlayImage().then((dataUrl) => {
+      if (dataUrl) setBackgroundUrl(dataUrl)
+    })
   }, [])
 
   useEffect(() => {
@@ -40,6 +45,10 @@ export function RegionSelector(): React.ReactElement {
     ctx.scale(dpr, dpr)
 
     ctx.clearRect(0, 0, w, h)
+
+    // While the timer capture fires, the overlay must render nothing so the
+    // live screen below is captured without the dimming layer.
+    if (capturing) return
 
     ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
     ctx.fillRect(0, 0, w, h)
@@ -111,7 +120,7 @@ export function RegionSelector(): React.ReactElement {
       ctx.fillStyle = '#ffffff'
       ctx.fillText(String(countdown), cx, cy)
     }
-  }, [ready, selection, mode, countdown])
+  }, [ready, selection, mode, countdown, capturing])
 
   const handleTimerCapture = useCallback(() => {
     if (!selection) return
@@ -124,13 +133,16 @@ export function RegionSelector(): React.ReactElement {
       if (remaining <= 0) {
         if (countdownRef.current) clearInterval(countdownRef.current)
         setCountdown(null)
+        setCapturing(true)
         const dpr = window.devicePixelRatio || 1
-        window.api.sendTimerCapture({
+        const rect = {
           x: Math.round(selectionSnapshot.x * dpr),
           y: Math.round(selectionSnapshot.y * dpr),
           width: Math.round(selectionSnapshot.width * dpr),
           height: Math.round(selectionSnapshot.height * dpr)
-        })
+        }
+        // Give the compositor time to show the cleared overlay before shooting
+        setTimeout(() => window.api.sendTimerCapture(rect), 200)
       } else {
         setCountdown(remaining)
       }
@@ -143,11 +155,27 @@ export function RegionSelector(): React.ReactElement {
     }
   }, [])
 
-  const showPopup = mode === 'adjusting' && selection && countdown === null
+  const showPopup = mode === 'adjusting' && selection && countdown === null && !capturing
+  // During timer countdown and capture, hide the frozen frame so the user
+  // sees (and the timer shot captures) the live screen below the overlay.
+  const showBackground = backgroundUrl !== null && countdown === null && !capturing
 
   return (
     <>
-      <canvas ref={canvasRef} />
+      {showBackground && (
+        <img
+          src={backgroundUrl}
+          draggable={false}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            width: '100vw',
+            height: '100vh',
+            pointerEvents: 'none'
+          }}
+        />
+      )}
+      <canvas ref={canvasRef} style={{ position: 'fixed', inset: 0 }} />
       {showPopup && (
         <AdjustmentPopup
           selection={selection}

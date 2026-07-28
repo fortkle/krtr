@@ -1,37 +1,24 @@
 import { app } from 'electron'
 import { createTray } from './tray'
 import { registerShortcuts, unregisterShortcuts } from './shortcut'
-import { registerIpcHandlers } from './ipc-handlers'
+import {
+  captureFullscreenToPreview,
+  registerIpcHandlers,
+  startRegionCapture
+} from './ipc-handlers'
 import { registerPreviewIpcHandlers } from './preview-window'
-import { captureFullScreen, saveTempScreenshot } from './screenshot'
-import { createOverlayWindow, registerOverlayIpcHandlers } from './overlay-window'
-import { hidePreviewWindow, openPreviewWindow } from './preview-window'
+import { registerOverlayIpcHandlers } from './overlay-window'
 import { showOnboardingIfNeeded, registerOnboardingIpcHandlers } from './onboarding-window'
-
-function startRegionCapture(): void {
-  hidePreviewWindow()
-  createOverlayWindow()
-}
-
-async function handleFullscreenCapture(): Promise<void> {
-  hidePreviewWindow()
-  await new Promise((resolve) => setTimeout(resolve, 200))
-  const image = await captureFullScreen()
-  if (!image) return
-
-  const tempPath = await saveTempScreenshot(image)
-  openPreviewWindow(image.toDataURL(), tempPath)
-}
 
 function setupApp(): void {
   createTray({
     onCaptureRegion: () => startRegionCapture(),
-    onCaptureFullscreen: () => handleFullscreenCapture()
+    onCaptureFullscreen: () => captureFullscreenToPreview()
   })
 
   registerShortcuts({
     onCaptureRegion: () => startRegionCapture(),
-    onCaptureFullscreen: () => handleFullscreenCapture()
+    onCaptureFullscreen: () => captureFullscreenToPreview()
   })
 }
 

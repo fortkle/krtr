@@ -142,10 +142,12 @@ export function registerPreviewIpcHandlers(): void {
   })
 }
 
-export function hidePreviewWindow(): void {
-  if (previewWindow) {
+export function hidePreviewWindow(): boolean {
+  if (previewWindow && previewWindow.isVisible()) {
     previewWindow.hide()
+    return true
   }
+  return false
 }
 
 export function closePreviewWindow(): void {

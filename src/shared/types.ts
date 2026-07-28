@@ -14,6 +14,7 @@ export const IPC = {
   CAPTURE_TIMER: 'capture:timer',
   CAPTURE_CANCELLED: 'capture:cancelled',
   OVERLAY_SET_PASSTHROUGH: 'overlay:set-passthrough',
+  OVERLAY_GET_IMAGE: 'overlay:get-image',
   PREVIEW_GET_DATA: 'preview:get-data',
   PREVIEW_SET_FILENAME: 'preview:set-filename',
   PREVIEW_START_DRAG: 'preview:start-drag',
