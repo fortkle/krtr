@@ -1,6 +1,6 @@
 {
   "name": "krtr",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Screenshot and image annotation tool",
   "main": "./out/main/index.js",
   "scripts": {
