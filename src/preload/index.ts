@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { IPC, Rectangle } from '../shared/types'
+import { CropResult, IPC, Rectangle } from '../shared/types'
 
 const api = {
   captureFullscreen: (): Promise<void> => ipcRenderer.invoke(IPC.CAPTURE_FULLSCREEN),
@@ -23,8 +23,10 @@ const api = {
     ipcRenderer.send(IPC.PREVIEW_START_DRAG)
   },
   saveToDesktop: (): Promise<void> => ipcRenderer.invoke(IPC.PREVIEW_SAVE),
-  cropImage: (rect: Rectangle): Promise<string | null> =>
+  cropImage: (rect: Rectangle): Promise<CropResult | null> =>
     ipcRenderer.invoke(IPC.PREVIEW_CROP, rect),
+  setAnnotatedImage: (dataUrl: string | null): Promise<void> =>
+    ipcRenderer.invoke(IPC.PREVIEW_SET_ANNOTATED, dataUrl),
   copyToClipboard: (): void => {
     ipcRenderer.send(IPC.PREVIEW_COPY)
   },
