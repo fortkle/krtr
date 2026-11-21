@@ -40,6 +40,22 @@ You can also click the scissors icon in the menu bar.
 
 ### Preview window
 
+Annotate the screenshot with the toolbar at the top:
+
+| Tool | Key | |
+|---|---|---|
+| Arrow | `A` | Point at something |
+| Rectangle | `R` | Box an area |
+| Ellipse | `O` | Circle an area |
+| Mosaic | `M` | Pixelate an area to hide it |
+| Crop | `C` | Drag to select, then **Apply** (default tool) |
+
+- Pick one of the five colors, toggle the white outline, and choose one of five line thicknesses (thickness button, or keys `1`–`5`) before drawing
+- Hold `Shift` while dragging to snap arrows to 45° and draw squares / circles
+- Click a shape to select it: drag it to move, drag a handle to resize (arrows: drag either end), `Delete` to remove. Changing the color, outline or thickness applies to the selected shape
+- `Cmd+Z` undoes the last change, `Esc` cancels the current drag or clears the selection
+- Annotations are baked into the image you copy, save or drag, and survive a crop
+
 - **Drag me** tab — drag the screenshot to any app (Slack, Finder, Mail, etc.)
 - **Copy** — copy to clipboard
 - **Save** — save to a file with a save dialog

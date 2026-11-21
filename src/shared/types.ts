@@ -7,6 +7,12 @@ export interface Rectangle {
   height: number
 }
 
+export interface CropResult {
+  dataUrl: string
+  offsetX: number
+  offsetY: number
+}
+
 export const IPC = {
   CAPTURE_FULLSCREEN: 'capture:fullscreen',
   CAPTURE_REGION_START: 'capture:region-start',
@@ -20,6 +26,7 @@ export const IPC = {
   PREVIEW_START_DRAG: 'preview:start-drag',
   PREVIEW_SAVE: 'preview:save',
   PREVIEW_CROP: 'preview:crop',
+  PREVIEW_SET_ANNOTATED: 'preview:set-annotated',
   PREVIEW_COPY: 'preview:copy',
   PREVIEW_CLOSE: 'preview:close'
 } as const
